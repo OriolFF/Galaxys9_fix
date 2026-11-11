@@ -1,0 +1,35 @@
+# Unity generated
+GearVRTest/[Ll]ibrary/
+GearVRTest/[Tt]emp/
+GearVRTest/[Oo]bj/
+GearVRTest/[Bb]uild/
+GearVRTest/[Bb]uilds/
+GearVRTest/[Ll]ogs/
+GearVRTest/[Uu]ser[Ss]ettings/
+GearVRTest/MemoryCaptures/
+GearVRTest/.vs/
+GearVRTest/.vscode/
+GearVRTest/.idea/
+*.csproj
+*.sln
+*.suo
+*.user
+*.pidb
+*.booproj
+*.unityproj
+*.apk
+*.aab
+*.obb
+mono_crash.*
+
+# Secrets: signing keys, credentials, local config
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+*.key
+.env
+.env.*
+local.properties
+GearVRTest/ProjectSettings/*Credentials*
