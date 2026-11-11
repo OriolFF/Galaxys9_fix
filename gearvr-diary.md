@@ -1,6 +1,6 @@
 # Gear VR on Galaxy S9: repair diary
 
-Phone: Samsung Galaxy S9 (SM-G960F, starltexx), Android 10, CSC PHE (Spain), ADB serial 231c50da14057ece.
+Phone: Samsung Galaxy S9 (SM-G960F, starltexx), Android 10, CSC PHE (Spain). (ADB serial omitted.)
 
 ## 2026-11-09: diagnosis
 
@@ -143,7 +143,7 @@ adb shell "pkill -f 'logcat -v time -f /sdcard/mc_dock.log'"; adb pull /sdcard/m
 
 **Data reset (user approved):** `pm clear com.mojang.minecraftvr`, then retested in the headset: **same crash**. So it isn't corrupted data either.
 
-**Trying to read the crash dump:** `adb backup -noapk com.mojang.minecraftvr`. The phone forces a backup password because storage is encrypted (the user chose 1234). The backup came back empty twice; Android 10's deprecated backup skipped the app. I stopped there, because even with the dump the crash is inside Minecraft's closed native code.
+**Trying to read the crash dump:** `adb backup -noapk com.mojang.minecraftvr`. The phone forces a backup password because storage is encrypted (the user set one; not recorded here). The backup came back empty twice; Android 10's deprecated backup skipped the app. I stopped there, because even with the dump the crash is inside Minecraft's closed native code.
 
 **Minecraft conclusion (for now):** it gets into VR, passes the Oculus entitlement, then crashes natively about 0.2 s after Xbox Live initialises, both online and offline, and with fresh data. It has never run on this phone (its game folder was first created 2026-11-10 14:16). Likely an incompatibility between this Minecraft build (1.16.40.02) and the Oculus/Gear VR runtime now on the phone. Not fixed.
 
