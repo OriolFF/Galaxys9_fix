@@ -29,6 +29,19 @@ foreach ($pkg in 'com.facebook.appmanager', 'com.facebook.system') {
     }
 }
 
+# 2b. Keep Meta App Installer disabled. It's the only Meta app allowed to install
+#     updates silently; left enabled, it updates itself and App Manager about once
+#     a day, and the new App Manager breaks Oculus ("Caller is not trusted").
+#     Gear VR only checks that it is installed, so disabled is fine.
+#     App Manager must stay ENABLED: Oculus talks to it.
+$fbs = Sh 'dumpsys package com.facebook.system'
+if ($fbs -match 'User 0:.*enabled=3') {
+    Write-Host "com.facebook.system OK (disabled, can't auto-update)"
+} else {
+    Write-Host "Disabling com.facebook.system so Meta apps can't auto-update..." -ForegroundColor Yellow
+    & $adb shell pm disable-user --user 0 com.facebook.system
+}
+
 # 3. Mark Gear VR setup as completed (1 = done; 0 or 2 = shows the update loop).
 $flag = (Sh 'settings get global vr_setupwizard_completed').Trim()
 if ($flag -ne '1') {

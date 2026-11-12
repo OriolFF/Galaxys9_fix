@@ -42,9 +42,46 @@ public static class GearVRBuild
         UnityEditorInternal.VR.VREditor.SetVREnabledDevicesOnTargetGroup(BuildTargetGroup.Android, new[] { "Oculus" });
 #pragma warning restore 618
 
+        UseOwnDebugKeystore();
         CreateScene();
         AssetDatabase.SaveAssets();
         Debug.Log("GearVR: project set up.");
+    }
+
+    /// <summary>
+    /// The shared ~/.android/debug.keystore is in a newer format (made by a newer JDK)
+    /// that Unity 2019's Java 8 can't read. Sign with our own debug keystore instead,
+    /// created with Unity's own keytool and kept outside the repo. Its password is the
+    /// standard, public Android debug password, so it is not a secret.
+    /// </summary>
+    static void UseOwnDebugKeystore()
+    {
+        const string pass = "android";
+        const string alias = "androiddebugkey";
+        string dir = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".android");
+        string ks = Path.Combine(dir, "unity2019-debug.keystore");
+        if (!File.Exists(ks))
+        {
+            Directory.CreateDirectory(dir);
+            string keytool = Path.Combine(EditorApplication.applicationContentsPath,
+                "PlaybackEngines/AndroidPlayer/OpenJDK/bin/keytool.exe");
+            var psi = new System.Diagnostics.ProcessStartInfo(keytool,
+                "-genkeypair -v -storetype JKS -keystore \"" + ks + "\" -storepass " + pass +
+                " -alias " + alias + " -keypass " + pass +
+                " -keyalg RSA -keysize 2048 -validity 10000 -dname \"CN=Android Debug,O=Android,C=US\"")
+            { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true };
+            using (var p = System.Diagnostics.Process.Start(psi))
+            {
+                string err = p.StandardError.ReadToEnd();
+                p.WaitForExit();
+                if (p.ExitCode != 0) Debug.LogError("GearVR: keytool failed: " + err);
+            }
+        }
+        PlayerSettings.Android.useCustomKeystore = true;
+        PlayerSettings.Android.keystoreName = ks;
+        PlayerSettings.Android.keystorePass = pass;
+        PlayerSettings.Android.keyaliasName = alias;
+        PlayerSettings.Android.keyaliasPass = pass;
     }
 
     static void CreateScene()
@@ -71,6 +108,11 @@ public static class GearVRBuild
             target = BuildTarget.Android,
             options = BuildOptions.Development,
         });
+        // Don't leave the local keystore path in ProjectSettings (it would end up in git).
+        PlayerSettings.Android.useCustomKeystore = false;
+        PlayerSettings.Android.keystoreName = "";
+        PlayerSettings.Android.keyaliasName = "";
+        AssetDatabase.SaveAssets();
         Debug.Log("GearVR: build " + report.summary.result + " -> " + Path.GetFullPath(ApkPath));
         if (report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded && Application.isBatchMode)
             EditorApplication.Exit(1);

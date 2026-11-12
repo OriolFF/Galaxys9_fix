@@ -212,3 +212,24 @@ These two toggles live in Gear VR Service's own protected database (`content://c
 - fix-gearvr.ps1 now also re-creates the unlock file. The switch itself is kept in vrsvc's data, so clearing Gear VR Service data would reset it.
 - Don't use "Borrar datos" on Gear VR Service.
 - "Modo de desarrollador" ON was the user's own choice (they want to develop Gear VR apps). Leave it on.
+
+## 2026-11-12 — Loop again: Meta App Installer auto-updated both apps (for good this time)
+
+- **Symptom:** the update loop again (flag = 2).
+- **Cause:** Meta App Installer (com.facebook.system) and App Manager were both at **140.0.78**, installed 2026-11-11 at 17:16:55 and 17:17:07.
+  - The factory 55.1.0 Installer checks Meta's servers daily (WorkManager jobs) and silently updates itself, then App Manager.
+  - The new App Manager breaks the old Oculus app, as on day 1.
+  - So rolling back only lasts about a day.
+- **Tried and dropped:**
+  - Restricting background activity (`appops RUN_ANY_IN_BACKGROUND ignore`). App Manager is on Samsung's built-in "except-idle" battery exemption list, so its jobs still showed RUNNABLE. `deviceidle sys-whitelist -pkg` can't remove that entry.
+  - `pm disable` of the job components: "Shell cannot change component state".
+  - Marking the home Wi-Fi as metered plus a data-saver blacklist would work, but changes how every app behaves. Not done.
+- **What vrsvc actually requires:**
+  - SetupChecker's list (com.oculus.horizon, com.facebook.appmanager, com.facebook.system, …) is only checked with `getPackageInfo(pkg, 0)`, which also finds disabled apps.
+  - The RetailPackageEvent code that re-enables them only runs in retail/demo mode.
+- **Fix:**
+  - `pm uninstall` both updates (back to 55.1.0).
+  - `pm disable-user --user 0 com.facebook.system`. Only the Installer has the permission to install silently; with it disabled, App Manager's update attempts fail ("Failed to find provider info for com.facebook.system.api.appmanager").
+  - App Manager stays **enabled**, because Oculus uses it. Oculus starts fine.
+- fix-gearvr.ps1 now checks that the Installer is disabled.
+- Pending: confirm on the next dock that SetupChecker doesn't complain. Logging to /sdcard/gvr_dock.log.

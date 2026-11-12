@@ -24,7 +24,7 @@ From the command line:
 adb install -r GearVRTest\Builds\GearVRTest.apk
 ```
 
-The APK is signed with Unity's debug key. No keystore or passwords are stored in this repo.
+The APK is signed with a local debug key, `%USERPROFILE%\.android\unity2019-debug.keystore`. The build script creates it with Unity's Java 8 keytool, because the shared `debug.keystore` made by newer tools can't be read by Unity 2019. That key lives outside the repo and uses the standard public Android debug password. No keystore or real password is stored in this repo.
 
 ## Phone requirements
 
