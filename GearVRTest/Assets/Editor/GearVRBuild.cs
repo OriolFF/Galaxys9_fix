@@ -50,8 +50,19 @@ public static class GearVRBuild
         // "V2 Signing (Quest)" adds <uses-feature android.hardware.vr.headtracking required=true>,
         // which marks the app as Quest-only (6DoF), so Gear VR's Oculus Home hides it.
         PlayerSettings.VROculus.v2Signing = false;
+#if OCULUS_INTEGRATION
+        // Oculus Integration defaults to Quest, which writes a *required* headtracking
+        // feature into the manifest; Gear VR's Oculus Home then hides the app.
+        // (OculusProjectConfig.asset lives in the git-ignored Assets/Oculus, so set it here.)
+        var oculusConfig = OVRProjectConfig.GetProjectConfig();
+        oculusConfig.targetDeviceTypes = new System.Collections.Generic.List<OVRProjectConfig.DeviceType>
+            { OVRProjectConfig.DeviceType.GearVrOrGo };
+        OVRProjectConfig.CommitProjectConfig(oculusConfig);
+        UseBuiltinOVRPlugin();
+#endif
         // No VR for the PC editor: avoids the "Oculus/OpenVR failed to initialize" console noise.
         UnityEditorInternal.VR.VREditor.SetVREnabledOnTargetGroup(BuildTargetGroup.Standalone, false);
+        UnityEditorInternal.VR.VREditor.SetVREnabledDevicesOnTargetGroup(BuildTargetGroup.Standalone, new string[0]);
 #pragma warning restore 618
 
         // (Not "GUI/Text Shader": Shader.Find returns an editor-only copy that can't be built.
@@ -132,6 +143,35 @@ public static class GearVRBuild
         }
         so.ApplyModifiedProperties();
     }
+
+#if OCULUS_INTEGRATION
+    /// <summary>
+    /// Keep the SDK's own OVRPlugin 1.50 (VrApi 1.1.35) switched OFF and use the one in
+    /// Unity's Oculus package instead. The phone's Oculus system driver is older and
+    /// rejects 1.1.35 ("Requested API version ... incompatible"), and the app quits.
+    /// Also stop OVRPluginUpdater from offering to switch it back on.
+    /// </summary>
+    static void UseBuiltinOVRPlugin()
+    {
+        PlayerPrefs.SetInt("Oculus_Utilities_OVRPluginUpdater_AutoUpdate_" + OVRManager.utilitiesVersion, 0);
+        bool changed = false;
+        foreach (var dir in Directory.GetDirectories("Assets/Oculus/VR/Plugins"))
+            foreach (var f in Directory.GetFiles(dir, "*", SearchOption.AllDirectories))
+            {
+                string name = Path.GetFileName(f);
+                if (!name.StartsWith("OVRPlugin.") || name.EndsWith(".meta") || name.EndsWith(".disabled"))
+                    continue;
+                File.Move(f, f + ".disabled");
+                if (File.Exists(f + ".meta")) File.Move(f + ".meta", f + ".disabled.meta");
+                changed = true;
+            }
+        if (changed)
+        {
+            AssetDatabase.Refresh();
+            Debug.Log("GearVR: switched off the SDK's OVRPlugin 1.50; using Unity's built-in OVRPlugin.");
+        }
+    }
+#endif
 
     static void CreateScene()
     {

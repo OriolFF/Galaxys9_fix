@@ -12,6 +12,32 @@ Gear VR runs on the Oculus Mobile SDK (VrApi). Unity's built-in Oculus VR suppor
 
 Required install: Unity **2019.4.40f1** with Android Build Support (OpenJDK and Android SDK & NDK).
 
+## Official Oculus SDK (Oculus Integration v18.0)
+
+The project uses Meta's official **Oculus Integration v18.0** (August 2020). It's the last version supporting Oculus Go and Gear VR-class devices; Go support was deprecated in v19.1.
+
+It isn't committed to git (about 370 MB of Meta's files). Restore it with:
+
+```powershell
+python -I tools/get_oculus_sdk.py            # libraries only
+python -I tools/get_oculus_sdk.py --samples  # + SampleFramework (265 MB, mostly Quest samples)
+```
+
+The script downloads `OculusIntegration_v18.unitypackage` from Meta's developer archive, caches it in `E:\GearVR_SDK`, and unpacks these into `Assets/Oculus`:
+
+| Folder | What it gives you |
+|---|---|
+| `VR` | OVRCameraRig, OVRManager, **OVRInput** (Gear VR Controller, headset touchpad, back), OVRPlugin |
+| `Platform` | Oculus Platform SDK (entitlements, achievements; the online services are shut down) |
+| `Spatializer` | Oculus Audio spatializer |
+| `Avatar` | Oculus Avatars |
+| `LipSync` | Oculus LipSync |
+| `AudioManager` | Sound management helpers |
+
+`Assets/Editor/OculusDefine` sets the `OCULUS_INTEGRATION` scripting define when `Assets/Oculus` is present. With it, the app uses OVRCameraRig and OVRInput: a Gear VR Controller laser, trigger or touchpad click to select, swipes to turn the cube ring, and battery shown on the panel. Without it, the project still compiles and falls back to gaze plus tap.
+
+Downloading the SDK means accepting the [Oculus SDK License](https://developer.oculus.com/licenses/sdk-3.5/).
+
 ## Build
 
 From the editor: open `GearVRTest` in Unity 2019.4, then use **GearVR > Build APK**.

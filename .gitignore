@@ -33,3 +33,10 @@ mono_crash.*
 .env.*
 local.properties
 GearVRTest/ProjectSettings/*Credentials*
+
+# Meta Oculus Integration SDK (restored by tools/get_oculus_sdk.py, not committed)
+GearVRTest/Assets/Oculus/
+GearVRTest/Assets/Oculus.meta
+# Oculus tool settings: per-machine paths, may hold upload credentials later
+GearVRTest/Assets/Resources/OVRBuildConfig.asset*
+GearVRTest/Assets/Resources/OVRPlatformToolSettings.asset*
