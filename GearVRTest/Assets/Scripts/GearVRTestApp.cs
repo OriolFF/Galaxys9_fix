@@ -20,6 +20,17 @@ public class GearVRTestApp : MonoBehaviour
     float fps, fpsTimer;
     int frames;
 
+    // Shaders must be listed in GraphicsSettings "Always Included Shaders"
+    // (GearVRBuild does this); objects made at runtime don't pull them into the build.
+    static Shader litShader, unlitShader;
+
+    static Material Mat(Color c, bool lit = true)
+    {
+        if (litShader == null) litShader = Shader.Find("Legacy Shaders/Diffuse");
+        if (unlitShader == null) unlitShader = Shader.Find("Unlit/Color");
+        return new Material(lit ? litShader : unlitShader) { color = c };
+    }
+
     void Start()
     {
         Application.targetFrameRate = 60;
@@ -31,7 +42,12 @@ public class GearVRTestApp : MonoBehaviour
             var go = new GameObject("Main Camera") { tag = "MainCamera" };
             cam = go.AddComponent<Camera>();
         }
-        cam.transform.position = new Vector3(0f, 1.6f, 0f);
+        // In VR the headset overwrites the camera's own position/rotation every frame,
+        // so put the camera inside a rig at standing eye height and move the rig instead.
+        var rig = new GameObject("CameraRig").transform;
+        rig.position = new Vector3(0f, 1.6f, 0f);
+        cam.transform.SetParent(rig, false);
+        cam.transform.localPosition = Vector3.zero;
         cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = new Color(0.05f, 0.07f, 0.12f);
         cam.nearClipPlane = 0.05f;
@@ -43,7 +59,7 @@ public class GearVRTestApp : MonoBehaviour
         var floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
         floor.name = "Floor";
         floor.transform.localScale = new Vector3(3f, 1f, 3f);
-        floor.GetComponent<Renderer>().material.color = new Color(0.25f, 0.28f, 0.3f);
+        floor.GetComponent<Renderer>().material = Mat(new Color(0.25f, 0.28f, 0.3f));
 
         for (int i = 0; i < CubeCount; i++)
         {
@@ -52,7 +68,7 @@ public class GearVRTestApp : MonoBehaviour
             cube.name = "Cube " + i;
             cube.transform.position = new Vector3(Mathf.Sin(a) * RingRadius, 1.6f, Mathf.Cos(a) * RingRadius);
             cube.transform.localScale = Vector3.one * 0.7f;
-            cube.GetComponent<Renderer>().material.color = Color.HSVToRGB((float)i / CubeCount, 0.6f, 0.9f);
+            cube.GetComponent<Renderer>().material = Mat(Color.HSVToRGB((float)i / CubeCount, 0.6f, 0.9f));
             cube.AddComponent<Spinner>();
         }
 
@@ -61,13 +77,17 @@ public class GearVRTestApp : MonoBehaviour
         Destroy(r.GetComponent<Collider>());
         r.name = "Reticle";
         r.transform.localScale = Vector3.one * 0.03f;
-        r.GetComponent<Renderer>().material.color = Color.white;
+        r.GetComponent<Renderer>().material = Mat(Color.white, lit: false);
         reticle = r.transform;
 
         // Floating info panel in front of the start position.
         var panel = new GameObject("Info");
         panel.transform.position = new Vector3(0f, 2.3f, 2.5f);
         info = panel.AddComponent<TextMesh>();
+        // A TextMesh made from code has no font: use Unity's built-in Arial.
+        var font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        info.font = font;
+        panel.GetComponent<MeshRenderer>().material = font.material;
         info.characterSize = 0.04f;
         info.fontSize = 48;
         info.anchor = TextAnchor.MiddleCenter;

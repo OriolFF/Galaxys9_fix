@@ -16,6 +16,11 @@ public static class GearVRBuild
     [MenuItem("GearVR/Setup Project")]
     public static void Setup()
     {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+        {
+            EditorUtility.DisplayDialog("GearVR", "Stop Play mode first (press the Play button again), then try again.", "OK");
+            throw new System.OperationCanceledException("GearVR: stop Play mode first.");
+        }
         if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
             EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android);
 
@@ -38,10 +43,20 @@ public static class GearVRBuild
 
         // Built-in (legacy) VR with the Oculus SDK: this is what drives Gear VR.
 #pragma warning disable 618
-        PlayerSettings.virtualRealitySupported = true;
+        // Set it on the Android group explicitly: PlayerSettings.virtualRealitySupported
+        // only affects whichever platform happens to be active at that moment.
+        UnityEditorInternal.VR.VREditor.SetVREnabledOnTargetGroup(BuildTargetGroup.Android, true);
         UnityEditorInternal.VR.VREditor.SetVREnabledDevicesOnTargetGroup(BuildTargetGroup.Android, new[] { "Oculus" });
+        // "V2 Signing (Quest)" adds <uses-feature android.hardware.vr.headtracking required=true>,
+        // which marks the app as Quest-only (6DoF), so Gear VR's Oculus Home hides it.
+        PlayerSettings.VROculus.v2Signing = false;
+        // No VR for the PC editor: avoids the "Oculus/OpenVR failed to initialize" console noise.
+        UnityEditorInternal.VR.VREditor.SetVREnabledOnTargetGroup(BuildTargetGroup.Standalone, false);
 #pragma warning restore 618
 
+        // (Not "GUI/Text Shader": Shader.Find returns an editor-only copy that can't be built.
+        //  The built-in Arial font brings its own text material.)
+        IncludeShaders("Legacy Shaders/Diffuse", "Unlit/Color");
         UseOwnDebugKeystore();
         CreateScene();
         AssetDatabase.SaveAssets();
@@ -82,6 +97,40 @@ public static class GearVRBuild
         PlayerSettings.Android.keystorePass = pass;
         PlayerSettings.Android.keyaliasName = alias;
         PlayerSettings.Android.keyaliasPass = pass;
+    }
+
+    /// <summary>
+    /// Adds shaders to GraphicsSettings "Always Included Shaders". The scene is built
+    /// at runtime, so nothing in the build references these shaders; without this they
+    /// get stripped and everything renders magenta.
+    /// </summary>
+    static void IncludeShaders(params string[] names)
+    {
+        var gs = AssetDatabase.LoadAssetAtPath<UnityEngine.Rendering.GraphicsSettings>("ProjectSettings/GraphicsSettings.asset");
+        var so = new SerializedObject(gs);
+        var list = so.FindProperty("m_AlwaysIncludedShaders");
+        // Drop editor-only shaders (they break the build) and empty slots.
+        for (int i = list.arraySize - 1; i >= 0; i--)
+        {
+            var obj = list.GetArrayElementAtIndex(i).objectReferenceValue;
+            if (obj == null || AssetDatabase.GetAssetPath(obj) == "Library/unity default resources")
+            {
+                list.GetArrayElementAtIndex(i).objectReferenceValue = null;
+                list.DeleteArrayElementAtIndex(i);
+            }
+        }
+        foreach (var n in names)
+        {
+            var shader = Shader.Find(n);
+            if (shader == null) { Debug.LogError("GearVR: shader not found: " + n); continue; }
+            bool present = false;
+            for (int i = 0; i < list.arraySize; i++)
+                if (list.GetArrayElementAtIndex(i).objectReferenceValue == shader) present = true;
+            if (present) continue;
+            list.InsertArrayElementAtIndex(list.arraySize);
+            list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = shader;
+        }
+        so.ApplyModifiedProperties();
     }
 
     static void CreateScene()
