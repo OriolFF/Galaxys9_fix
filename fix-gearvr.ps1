@@ -59,6 +59,13 @@ if ($flag -ne '1') {
 Write-Host "Unlock file /sdcard/vr.skip.update.check present."
 Write-Host "If the loop came back, check that 'Skip Update check' is still ON (Gear VR Service > Almacenamiento > Admin almacenam, bottom)." -ForegroundColor Yellow
 
+# 3c. The VR setup wizard has its own scheduled update check (on boot and every
+#     network change, "Solo Wi-Fi" by default) that also resets the flag. It must be
+#     "Nunca". It lives in the wizard's private prefs, so we can only open the screen.
+Write-Host "Also check: Samsung Gear VR > (menu) Ajustes > Actualizar > Buscar actualizaciones = 'Nunca'." -ForegroundColor Yellow
+Write-Host "  Opening it on the phone now..."
+& $adb shell am start -n com.samsung.android.app.vrsetupwizard/.ui.LaunchActivity *> $null
+
 # 4. Verify: start Oculus and check that it doesn't crash.
 & $adb logcat -c
 & $adb shell am force-stop com.oculus.horizon

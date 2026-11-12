@@ -13,6 +13,17 @@ public static class GearVRBuild
     const string ScenePath = "Assets/Scenes/Main.unity";
     const string ApkPath = "Builds/GearVRTest.apk";
 
+    // Gear VR's Biblioteca is built from the account's store entitlements (OCMS DB),
+    // matched to installed apps by package name only. Sideloaded packages are hidden
+    // (the "unknown sources" gatekeeper is stuck off now that Meta's servers are gone).
+    // So we use the package name of an app this account owns but hasn't installed
+    // ("No instaladas"): Biblioteca then lists our build as that app, installed.
+    // Owned-but-not-installed candidates found on this phone: com.Armature.FailFactoryGearVRDemo,
+    // com.MirrorKey.ElectroBeats, br.com.rilix.rilixcoaster.gearvr, com.clicked.fohland,
+    // com.picselica.OceanRift, com.imangi.templerunvr, com.netflix.ninja.vr.
+    // Set to "com.example.gearvrtest" for a plain sideload build.
+    const string AppId = "com.Armature.FailFactoryGearVRDemo";
+
     [MenuItem("GearVR/Setup Project")]
     public static void Setup()
     {
@@ -26,7 +37,7 @@ public static class GearVRBuild
 
         PlayerSettings.companyName = "GearVRTest";
         PlayerSettings.productName = "Gear VR Test";
-        PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, "com.example.gearvrtest");
+        PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.Android, AppId);
         PlayerSettings.bundleVersion = "0.1";
         PlayerSettings.Android.bundleVersionCode = 1;
 

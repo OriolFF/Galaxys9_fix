@@ -233,3 +233,22 @@ These two toggles live in Gear VR Service's own protected database (`content://c
   - App Manager stays **enabled**, because Oculus uses it. Oculus starts fine.
 - fix-gearvr.ps1 now checks that the Installer is disabled.
 - Pending: confirm on the next dock that SetupChecker doesn't complain. Logging to /sdcard/gvr_dock.log.
+
+## 2026-11-12 (evening): loop again, third trigger: the setup wizard's own update job
+
+- **State:** flag = 2, but the Meta apps were still factory, the Installer was still disabled, and "Skip Update check" was still on.
+- **Cause, from the vrsetupwizard code (3.2.08.2):**
+  - Only `UpdateJobService` writes `vr_setupwizard_completed=2` (methods a/j/k, after an online update check).
+  - The job is scheduled by `UpdateCheckIntentReceiver` on BOOT_COMPLETED, **CONNECTIVITY_CHANGE** and REQUEST_VR_APP_UPDATE.
+  - vrsvc's "Skip Update check" only blocks the dock request. Boot and network changes still scheduled the job, governed by the wizard's own pref `vrsw_update_settings_update_check_mode` (default "Solo Wi-Fi").
+- **Fix (UI):** Samsung Gear VR app (`vrsetupwizard/.ui.LaunchActivity`) → ⋮ → Ajustes → Aplicación → Actualizar → **Buscar actualizaciones = Nunca**.
+  - "Actualización automática" then greys out.
+  - Persisted after a force-stop.
+- fix-gearvr.ps1 now reminds about this and opens that app.
+- **Bonus:** the Samsung Gear VR app's main page lists all installed VR apps, including sideloaded ones (Gear VR Test, Astronaut, the Jurassic ones).
+- **Library research (subagent):**
+  - Biblioteca = OCMS entitlement DB (`com.oculus.ocms.library`). Installed vs "No instaladas" is just a per-package lookup of owned apps.
+  - "No instaladas" can't install because the store/CDN is dead.
+  - Sideloads would show as "Unknown sources" only with gatekeeper `oculus_vrshell_home_unknown_sources`, which is stuck off (no root).
+  - Owned-but-not-installed packages found: com.Armature.FailFactoryGearVRDemo, com.MirrorKey.ElectroBeats, br.com.rilix.rilixcoaster.gearvr, com.clicked.fohland, com.imangi.templerunvr, com.netflix.ninja.vr, com.picselica.OceanRift, com.oculusvr.pwatson, com.oculus.{arcade,cinema,henry,rooms}.
+  - Plan: build the test app as com.Armature.FailFactoryGearVRDemo so Biblioteca lists it as installed. Untested.
