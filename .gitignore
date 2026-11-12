@@ -40,3 +40,6 @@ GearVRTest/Assets/Oculus.meta
 # Oculus tool settings: per-machine paths, may hold upload credentials later
 GearVRTest/Assets/Resources/OVRBuildConfig.asset*
 GearVRTest/Assets/Resources/OVRPlatformToolSettings.asset*
+
+# Gear VR Guard build output
+tools/gearvr-guard/out/
